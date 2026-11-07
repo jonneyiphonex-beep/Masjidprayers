@@ -222,6 +222,7 @@
     let currentLocation;
     let currentMosque;
     let locationRequestId = 0;
+    let activeLocationWatchId = null;
 
     const $ = (id) => document.getElementById(id);
     const showStatus = (message, isError = false) => {
@@ -433,35 +434,29 @@
     }
 
     function requestUserLocation() {
+      if (activeLocationWatchId !== null) {
+        navigator.geolocation.clearWatch(activeLocationWatchId);
+        activeLocationWatchId = null;
+        $("locate-button").querySelector("span").textContent = "تحديد موقعي";
+        hideStatus();
+        return;
+      }
       if (!navigator.geolocation) {
         showStatus("المتصفح لا يدعم تحديد الموقع.", true);
         return;
       }
+      if (!window.isSecureContext) {
+        showStatus("يلزم فتح الصفحة عبر HTTPS أو localhost لاستخدام تحديد الموقع.", true);
+        return;
+      }
       const button = $("locate-button");
-      button.disabled = true;
-      const locationTimeoutSeconds = 30;
-      let secondsRemaining = locationTimeoutSeconds + 5;
-      showStatus(`جارٍ تحديد موقعك... متبقٍ ${secondsRemaining} ثانية`);
-      let requestFinished = false;
-      const countdownInterval = setInterval(() => {
-        secondsRemaining -= 1;
-        if (secondsRemaining > 0) {
-          showStatus(`جارٍ تحديد موقعك... متبقٍ ${secondsRemaining} ثانية`);
-        }
-      }, 1000);
-      const requestTimeout = setTimeout(() => {
-        if (requestFinished) return;
-        requestFinished = true;
-        clearInterval(countdownInterval);
-        button.disabled = false;
-        showStatus("لم يستجب المتصفح لتحديد الموقع. تحقق من إذن الموقع وخدماته، ثم حاول مجددًا.", true);
-      }, (locationTimeoutSeconds + 5) * 1000);
+      button.querySelector("span").textContent = "إلغاء تحديد الموقع";
+      showStatus("جارٍ تحديد موقعك. وافق على طلب الموقع أو ألغِ الانتظار.");
       const finishRequest = () => {
-        if (requestFinished) return false;
-        requestFinished = true;
-        clearTimeout(requestTimeout);
-        clearInterval(countdownInterval);
-        button.disabled = false;
+        if (activeLocationWatchId === null) return false;
+        navigator.geolocation.clearWatch(activeLocationWatchId);
+        activeLocationWatchId = null;
+        button.querySelector("span").textContent = "تحديد موقعي";
         return true;
       };
       const handlePositionError = (error) => {
@@ -473,13 +468,8 @@
         };
         showStatus(messages[error.code] || "تعذر تحديد الموقع. تحقق من إعدادات المتصفح وحاول مجددًا.", true);
       };
-      if (!window.isSecureContext) {
-        finishRequest();
-        showStatus("يلزم فتح الصفحة عبر HTTPS أو localhost لاستخدام تحديد الموقع.", true);
-        return;
-      }
       try {
-        navigator.geolocation.getCurrentPosition(
+        activeLocationWatchId = navigator.geolocation.watchPosition(
           (position) => {
             if (!finishRequest()) return;
             updateLocation(position.coords.latitude, position.coords.longitude).catch(() => {
@@ -487,15 +477,16 @@
             });
           },
           handlePositionError,
-          { enableHighAccuracy: false, timeout: locationTimeoutSeconds * 1000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
         );
       } catch {
-        if (finishRequest()) showStatus("تعذر بدء تحديد الموقع. تحقق من إذن الموقع في المتصفح.", true);
+        if (activeLocationWatchId !== null) finishRequest();
+        else button.querySelector("span").textContent = "تحديد موقعي";
+        showStatus("تعذر بدء تحديد الموقع. تحقق من إذن الموقع في المتصفح.", true);
       }
     }
 
     $("locate-button").addEventListener("click", requestUserLocation);
-    requestUserLocation();
 
     $("foot-route").addEventListener("click", () => renderRoute("foot"));
     $("car-route").addEventListener("click", () => renderRoute("car"));
