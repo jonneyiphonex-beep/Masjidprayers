@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f4ef">
+  <title>أقرب مسجد | دليل الصلاة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f4ef;
+      --surface: #fff;
+      --ink: #1b2926;
+      --muted: #74817b;
+      --line: #e5e9e3;
+      --green: #237b58;
+      --green-dark: #18583f;
+      --green-pale: #e7f2eb;
+      --orange: #e69b45;
+      --red: #bd5b47;
+      --shadow: 0 16px 48px rgb(34 49 43 / 8%);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "IBM Plex Sans Arabic", "DM Sans", sans-serif;
+      min-width: 320px;
+    }
+    button { font: inherit; }
+    .topbar {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(5vw, 22px);
+      border-bottom: 1px solid var(--line);
+      background: rgb(255 255 255 / 72%);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 15px; font-weight: 700; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      color: white; background: var(--green); border-radius: 11px;
+    }
+    .top-note { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .top-note i { color: var(--green); width: 16px; height: 16px; }
+    main { max-width: 1380px; margin: 0 auto; padding: 38px 28px 54px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+    .eyebrow { color: var(--green); font-size: 12px; font-weight: 700; letter-spacing: 0; margin: 0 0 9px; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 38px); line-height: 1.35; letter-spacing: 0; }
+    .intro-copy { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+    .locate-button, .route-button, .text-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      border: 0; cursor: pointer; transition: background .18s ease, transform .18s ease;
+    }
+    .locate-button {
+      flex: 0 0 auto; padding: 12px 17px; color: #fff; background: var(--green);
+      border-radius: 8px; font-weight: 600; box-shadow: 0 5px 14px rgb(35 123 88 / 18%);
+    }
+    .locate-button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .locate-button:disabled { opacity: .7; cursor: wait; transform: none; }
+    .locate-button i, .route-button i { width: 17px; height: 17px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 355px; gap: 20px; align-items: stretch; }
+    .map-panel { position: relative; min-height: 670px; overflow: hidden; border: 1px solid #e1e6df; border-radius: 10px; background: #dce8df; box-shadow: var(--shadow); }
+    #map { position: absolute; inset: 0; min-height: 670px; background: #e4ede6; }
+    .map-caption {
+      position: absolute; z-index: 500; bottom: 14px; left: 14px; padding: 8px 11px;
+      display: flex; align-items: center; gap: 7px; color: #44524b; background: #fff;
+      border: 1px solid #e8ece8; border-radius: 6px; font: 11px "DM Sans", sans-serif;
+      box-shadow: 0 2px 10px rgb(20 30 25 / 10%);
+    }
+    .map-caption i { width: 14px; height: 14px; color: var(--green); }
+    .side-panel { display: flex; flex-direction: column; gap: 14px; }
+    .panel-section { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
+    .location-section { padding: 17px 18px 16px; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .section-title { margin: 0; font-size: 14px; font-weight: 700; }
+    .live-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-size: 11px; font-weight: 600; }
+    .live-dot { width: 7px; height: 7px; background: #49a776; border-radius: 50%; box-shadow: 0 0 0 3px #e6f4eb; }
+    .place-name { margin: 15px 0 3px; font-size: 19px; line-height: 1.5; font-weight: 700; }
+    .place-address { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .empty-state { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 14px 0 0; }
+    .route-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .route-button {
+      min-width: 0; min-height: 60px; padding: 9px 10px; justify-content: start;
+      color: var(--ink); background: #f8faf8; border: 1px solid var(--line); border-radius: 7px;
+    }
+    .route-button:hover, .route-button.active { color: var(--green-dark); background: var(--green-pale); border-color: #bedac9; }
+    .route-button i { flex: 0 0 auto; color: var(--green); }
+    .route-copy { display: grid; gap: 2px; text-align: right; line-height: 1.3; }
+    .route-copy strong { font: 700 14px "DM Sans", "IBM Plex Sans Arabic", sans-serif; }
+    .route-copy small { color: var(--muted); font-size: 10px; }
+    .qibla-row { display: flex; align-items: center; gap: 13px; padding: 14px 18px; }
+    .qibla-icon { display: grid; place-items: center; width: 37px; height: 37px; flex: 0 0 auto; color: #ad7040; background: #fbf1e4; border-radius: 9px; }
+    .qibla-icon i { width: 19px; height: 19px; }
+    .qibla-copy { display: grid; gap: 2px; }
+    .qibla-copy strong { font-size: 13px; }
+    .qibla-copy span { color: var(--muted); font: 12px "DM Sans", sans-serif; direction: ltr; text-align: right; }
+    .prayer-section { padding: 16px 18px 14px; }
+    .prayer-date { margin: 4px 0 13px; color: var(--muted); font-size: 11px; }
+    .prayer-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .prayer-item { min-width: 0; padding: 9px 3px; text-align: center; background: #f7f8f5; border-radius: 6px; }
+    .prayer-item.next { color: var(--green-dark); background: var(--green-pale); }
+    .prayer-item span { display: block; color: var(--muted); font-size: 10px; margin-bottom: 5px; }
+    .prayer-item.next span { color: var(--green); }
+    .prayer-item strong { font: 600 11px "DM Sans", sans-serif; direction: ltr; display: block; }
+    .source-note { margin: auto 3px 0; color: #859089; font-size: 10px; line-height: 1.7; text-align: center; }
+    .status-line { position: absolute; z-index: 500; top: 14px; right: 14px; max-width: min(390px, calc(100% - 28px)); padding: 9px 12px; display: none; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; font-size: 12px; box-shadow: 0 3px 15px rgb(20 30 25 / 10%); }
+    .status-line.visible { display: flex; }
+    .status-line i { width: 15px; height: 15px; color: var(--green); flex: 0 0 auto; }
+    .status-line.error i { color: var(--red); }
+    .user-marker { width: 18px; height: 18px; background: var(--green); border: 4px solid #fff; border-radius: 50%; box-shadow: 0 1px 8px rgb(0 0 0 / 30%); }
+    .mosque-marker { display: grid; place-items: center; width: 34px; height: 34px; color: white; background: var(--orange); border: 3px solid white; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); box-shadow: 0 2px 8px rgb(0 0 0 / 22%); }
+    .mosque-marker span { transform: rotate(45deg); font: 700 13px "DM Sans", sans-serif; }
+    .leaflet-container { font-family: "IBM Plex Sans Arabic", sans-serif; }
+    .leaflet-control-attribution { direction: ltr; }
+    @media (max-width: 900px) {
+      main { padding: 30px 20px 40px; }
+      .workspace { grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
+      .map-panel, #map { min-height: 620px; }
+    }
+    @media (max-width: 720px) {
+      .topbar { height: 62px; padding: 0 18px; }
+      .top-note { font-size: 11px; }
+      main { padding: 27px 15px 32px; }
+      .intro { align-items: start; flex-direction: column; gap: 16px; margin-bottom: 18px; }
+      .intro-copy { font-size: 13px; }
+      .locate-button { width: 100%; }
+      .workspace { display: flex; flex-direction: column; }
+      .map-panel { order: 0; min-height: 390px; }
+      #map { min-height: 390px; }
+      .side-panel { display: contents; }
+      .location-section { order: 1; }
+      .qibla-row { order: 2; }
+      .prayer-section { order: 3; }
+      .source-note { order: 4; margin-top: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark"><i data-lucide="map-pin"></i></span><span>دليل الصلاة</span></div>
+    <div class="top-note"><i data-lucide="map"></i><span>معلومات محلية حسب موقعك</span></div>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">المسجد والقبلة ومواقيت الصلاة</p>
+        <h1 id="page-title">المسجد الأقرب، على خريطتك.</h1>
+        <p class="intro-copy">اعرف المسافة والوقت المتوقع للوصول، أينما كنت.</p>
+      </div>
+      <button class="locate-button" id="locate-button" type="button"><i data-lucide="locate-fixed"></i><span>تحديد موقعي</span></button>
+    </section>
+
+    <section class="workspace" aria-label="المسجد الأقرب ومعلومات الصلاة">
+      <div class="map-panel">
+        <div id="map" aria-label="خريطة توضح موقعك والمسجد الأقرب"></div>
+        <div class="status-line" id="status-line" role="status" aria-live="polite"><i data-lucide="info"></i><span></span></div>
+        <div class="map-caption"><i data-lucide="layers-2"></i><span>OpenStreetMap</span></div>
+      </div>
+      <aside class="side-panel">
+        <section class="panel-section location-section">
+          <div class="section-heading"><h2 class="section-title">أقرب مسجد</h2><span class="live-tag"><span class="live-dot"></span>حسب موقعك</span></div>
+          <div id="mosque-details"><p class="empty-state">حدد موقعك لعرض المسجد الأقرب ومسافة الطريق.</p></div>
+          <div class="route-list" aria-label="المسافة ومدة الوصول">
+            <button class="route-button" id="foot-route" type="button" aria-label="إظهار مسار المشي"><i data-lucide="person-standing"></i><span class="route-copy"><strong id="foot-distance">--</strong><small id="foot-duration">مشي</small></span></button>
+            <button class="route-button" id="car-route" type="button" aria-label="إظهار مسار السيارة"><i data-lucide="car-front"></i><span class="route-copy"><strong id="car-distance">--</strong><small id="car-duration">سيارة</small></span></button>
+          </div>
+        </section>
+
+        <section class="panel-section qibla-row" aria-live="polite">
+          <span class="qibla-icon"><i data-lucide="compass"></i></span>
+          <div class="qibla-copy"><strong>اتجاه القبلة</strong><span id="qibla-value">حدد موقعك أولاً</span></div>
+        </section>
+
+        <section class="panel-section prayer-section">
+          <div class="section-heading"><h2 class="section-title">مواقيت الصلاة</h2><i data-lucide="clock-3" style="width:16px;height:16px;color:#74817b"></i></div>
+          <p class="prayer-date" id="prayer-date">حسب موقعك المحلي</p>
+          <div class="prayer-list" id="prayer-list" aria-live="polite">
+            <div class="prayer-item"><span>الفجر</span><strong>--:--</strong></div>
+            <div class="prayer-item"><span>الظهر</span><strong>--:--</strong></div>
+            <div class="prayer-item"><span>العصر</span><strong>--:--</strong></div>
+            <div class="prayer-item"><span>المغرب</span><strong>--:--</strong></div>
+            <div class="prayer-item"><span>العشاء</span><strong>--:--</strong></div>
+          </div>
+        </section>
+        <p class="source-note">المساجد والطرق من OpenStreetMap · مواقيت الصلاة واتجاه القبلة من Aladhan</p>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    lucide.createIcons();
+
+    const map = L.map("map", { zoomControl: false }).setView([25, 45], 4);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    const userIcon = L.divIcon({ className: "", html: '<div class="user-marker"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+    const mosqueIcon = L.divIcon({ className: "", html: '<div class="mosque-marker"><span>م</span></div>', iconSize: [34, 34], iconAnchor: [8, 30] });
+    const routeLayers = L.layerGroup().addTo(map);
+    let userMarker;
+    let mosqueMarker;
+    let selectedRoutes = {};
+    let currentLocation;
+    let currentMosque;
+
+    const $ = (id) => document.getElementById(id);
+    const showStatus = (message, isError = false) => {
+      const status = $("status-line");
+      status.querySelector("span").textContent = message;
+      status.classList.toggle("error", isError);
+      status.classList.add("visible");
+      status.querySelector("i").setAttribute("data-lucide", isError ? "triangle-alert" : "loader-circle");
+      lucide.createIcons();
+    };
+    const hideStatus = () => $("status-line").classList.remove("visible");
+    const setRouteValue = (mode, distance, duration) => {
+      const prefix = mode === "foot" ? "foot" : "car";
+      $(prefix + "-distance").textContent = distance;
+      $(prefix + "-duration").textContent = duration;
+    };
+    const formatDistance = (meters) => meters < 1000 ? `${Math.round(meters / 10) * 10} م` : `${(meters / 1000).toFixed(1)} كم`;
+    const formatDuration = (seconds) => {
+      const minutes = Math.max(1, Math.round(seconds / 60));
+      return minutes >= 60 ? `${Math.floor(minutes / 60)} س ${minutes % 60} د` : `${minutes} د`;
+    };
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+
+    async function getJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    async function findNearestMosque(location) {
+      const searches = await Promise.all(["mosque", "مسجد"].map(async (term) => {
+        const params = new URLSearchParams({
+          q: term,
+          lat: String(location.lat),
+          lon: String(location.lng),
+          limit: "50",
+          osm_tag: "amenity:place_of_worship"
+        });
+        return getJson(`https://photon.komoot.io/api/?${params}`);
+      }));
+      const unique = new Map();
+      searches.flatMap((result) => result.features || []).forEach((feature) => {
+        const properties = feature.properties || {};
+        if (properties.osm_key !== "amenity" || properties.osm_value !== "place_of_worship") return;
+        const [longitude, latitude] = feature.geometry.coordinates;
+        const distance = map.distance([location.lat, location.lng], [latitude, longitude]);
+        if (distance > 12000) return;
+        const key = `${properties.osm_type}/${properties.osm_id}`;
+        if (!unique.has(key) || unique.get(key).distance > distance) {
+          unique.set(key, {
+            lat: latitude,
+            lng: longitude,
+            distance,
+            tags: { name: properties.name, "name:ar": properties["name:ar"] }
+          });
+        }
+      });
+      const candidates = [...unique.values()].sort((a, b) => a.distance - b.distance);
+      if (!candidates.length) throw new Error("لم يُعثر على مسجد قريب ضمن 12 كم.");
+      return candidates[0];
+    }
+
+    async function getRoute(mode, from, to) {
+      const profile = mode === "foot" ? "foot" : "driving";
+      const base = mode === "foot"
+        ? "https://routing.openstreetmap.de/routed-foot/route/v1/foot/"
+        : "https://router.project-osrm.org/route/v1/driving/";
+      const coordinates = `${from.lng},${from.lat};${to.lng},${to.lat}`;
+      const result = await getJson(`${base}${coordinates}?overview=full&geometries=geojson&steps=false`);
+      if (result.code !== "Ok" || !result.routes?.length) throw new Error(`No ${profile} route`);
+      return result.routes[0];
+    }
+
+    function renderRoute(mode) {
+      if (!selectedRoutes[mode]) return;
+      routeLayers.clearLayers();
+      const color = mode === "foot" ? "#237b58" : "#bd5b47";
+      L.geoJSON(selectedRoutes[mode].geometry, { style: { color, weight: 5, opacity: .88, lineCap: "round", lineJoin: "round" } }).addTo(routeLayers);
+      $("foot-route").classList.toggle("active", mode === "foot");
+      $("car-route").classList.toggle("active", mode === "car");
+    }
+
+    async function loadRoutes(location, mosque) {
+      selectedRoutes = {};
+      setRouteValue("foot", "...", "جارٍ الحساب");
+      setRouteValue("car", "...", "جارٍ الحساب");
+      const results = await Promise.allSettled([getRoute("foot", location, mosque), getRoute("car", location, mosque)]);
+      ["foot", "car"].forEach((mode, index) => {
+        const result = results[index];
+        if (result.status === "fulfilled") {
+          selectedRoutes[mode] = result.value;
+          setRouteValue(mode, formatDistance(result.value.distance), formatDuration(result.value.duration));
+        } else {
+          setRouteValue(mode, "غير متاح", "تعذر حساب المسار");
+        }
+      });
+      if (selectedRoutes.foot) renderRoute("foot");
+      else if (selectedRoutes.car) renderRoute("car");
+    }
+
+    async function loadPrayerData(location) {
+      const now = new Date();
+      const date = `${String(now.getDate()).padStart(2, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
+      const coordinates = `latitude=${location.lat}&longitude=${location.lng}`;
+      const prayerUrl = `https://api.aladhan.com/v1/timings/${date}?${coordinates}&method=3`;
+      const qiblaUrl = `https://api.aladhan.com/v1/qibla/${location.lat}/${location.lng}`;
+      const [prayerResult, qiblaResult] = await Promise.allSettled([getJson(prayerUrl), getJson(qiblaUrl)]);
+
+      if (prayerResult.status === "fulfilled" && prayerResult.value.code === 200) {
+        const data = prayerResult.value.data;
+        const timings = data.timings;
+        const prayers = [["الفجر", "Fajr"], ["الظهر", "Dhuhr"], ["العصر", "Asr"], ["المغرب", "Maghrib"], ["العشاء", "Isha"]];
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        let nextPrayer = prayers.findIndex(([, key]) => {
+          const [hour, minute] = timings[key].split(":").map(Number);
+          return hour * 60 + minute > currentMinutes;
+        });
+        if (nextPrayer < 0) nextPrayer = 0;
+        $("prayer-list").innerHTML = prayers.map(([label, key], index) => {
+          const time = timings[key].split(" ")[0].split("(")[0];
+          return `<div class="prayer-item ${index === nextPrayer ? "next" : ""}"><span>${label}</span><strong>${escapeHtml(time)}</strong></div>`;
+        }).join("");
+        $("prayer-date").textContent = data.date?.readable || "مواقيت اليوم";
+      } else {
+        $("prayer-date").textContent = "تعذر تحميل مواقيت الصلاة";
+      }
+
+      if (qiblaResult.status === "fulfilled" && qiblaResult.value.code === 200) {
+        const degree = Math.round(qiblaResult.value.data.direction);
+        $("qibla-value").textContent = `${degree}° من الشمال`;
+      } else {
+        $("qibla-value").textContent = "تعذر تحديد الاتجاه";
+      }
+    }
+
+    async function updateLocation(latitude, longitude) {
+      currentLocation = { lat: latitude, lng: longitude };
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker([latitude, longitude], { icon: userIcon }).addTo(map).bindPopup("موقعك");
+      map.setView([latitude, longitude], 14, { animate: true });
+      $("mosque-details").innerHTML = '<p class="empty-state">جارٍ البحث عن أقرب مسجد...</p>';
+      $("qibla-value").textContent = "جارٍ التحديد...";
+      $("prayer-date").textContent = "جارٍ تحميل المواقيت...";
+      routeLayers.clearLayers();
+      setRouteValue("foot", "--", "مشي");
+      setRouteValue("car", "--", "سيارة");
+      showStatus("جاري تحميل معلومات موقعك والمساجد القريبة");
+
+      const [mosqueResult] = await Promise.allSettled([findNearestMosque(currentLocation), loadPrayerData(currentLocation)]);
+      if (mosqueResult.status === "fulfilled") {
+        currentMosque = mosqueResult.value;
+        if (mosqueMarker) map.removeLayer(mosqueMarker);
+        mosqueMarker = L.marker([currentMosque.lat, currentMosque.lng], { icon: mosqueIcon }).addTo(map);
+        const name = currentMosque.tags.name || currentMosque.tags["name:ar"] || "مسجد قريب";
+        mosqueMarker.bindPopup(escapeHtml(name));
+        $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(name)}</h3><p class="place-address">يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم</p>`;
+        map.fitBounds(L.latLngBounds([[latitude, longitude], [currentMosque.lat, currentMosque.lng]]).pad(.22), { maxZoom: 15 });
+        await loadRoutes(currentLocation, currentMosque);
+        if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
+        else hideStatus();
+      } else {
+        $("mosque-details").innerHTML = `<p class="empty-state">${escapeHtml(mosqueResult.reason.message || "تعذر العثور على مسجد قريب.")}</p>`;
+        hideStatus();
+      }
+    }
+
+    $("locate-button").addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        showStatus("المتصفح لا يدعم تحديد الموقع.", true);
+        return;
+      }
+      const button = $("locate-button");
+      button.disabled = true;
+      showStatus("جارٍ تحديد موقعك...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          button.disabled = false;
+          updateLocation(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          button.disabled = false;
+          const message = error.code === 1 ? "اسمح بالوصول إلى موقعك لعرض المساجد القريبة." : "تعذر تحديد الموقع. تحقق من إعدادات الموقع وحاول مجدداً.";
+          showStatus(message, true);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      );
+    });
+
+    $("foot-route").addEventListener("click", () => renderRoute("foot"));
+    $("car-route").addEventListener("click", () => renderRoute("car"));
+    map.on("click", (event) => updateLocation(event.latlng.lat, event.latlng.lng));
+  </script>
+</body>
+</html>
