@@ -439,7 +439,8 @@
       }
       const button = $("locate-button");
       button.disabled = true;
-      let secondsRemaining = 12;
+      const locationTimeoutSeconds = 30;
+      let secondsRemaining = locationTimeoutSeconds + 5;
       showStatus(`جارٍ تحديد موقعك... متبقٍ ${secondsRemaining} ثانية`);
       let requestFinished = false;
       const countdownInterval = setInterval(() => {
@@ -453,8 +454,8 @@
         requestFinished = true;
         clearInterval(countdownInterval);
         button.disabled = false;
-        showStatus("استغرق تحديد الموقع وقتًا طويلًا. تحقق من إذن الموقع وحاول مجددًا.", true);
-      }, 12000);
+        showStatus("لم يستجب المتصفح لتحديد الموقع. تحقق من إذن الموقع وخدماته، ثم حاول مجددًا.", true);
+      }, (locationTimeoutSeconds + 5) * 1000);
       const finishRequest = () => {
         if (requestFinished) return false;
         requestFinished = true;
@@ -486,7 +487,7 @@
             });
           },
           handlePositionError,
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: locationTimeoutSeconds * 1000, maximumAge: 60000 }
         );
       } catch {
         if (finishRequest()) showStatus("تعذر بدء تحديد الموقع. تحقق من إذن الموقع في المتصفح.", true);
