@@ -87,6 +87,12 @@
     .place-name { margin: 13px 0 3px; font-size: 18px; line-height: 1.5; font-weight: 600; }
     .place-address { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
     .empty-state { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 14px 0 0; }
+    .mosque-list-section { padding: 14px 16px; }
+    .mosque-list { display: grid; gap: 5px; max-height: 260px; overflow-y: auto; margin-top: 10px; }
+    .mosque-list-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 9px; color: var(--ink); background: #f8faf8; border: 1px solid transparent; border-radius: 7px; text-align: right; cursor: pointer; }
+    .mosque-list-item:hover, .mosque-list-item:focus-visible { background: var(--green-pale); border-color: #d6e8dc; }
+    .mosque-list-item span { min-width: 0; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .mosque-list-item small { flex: 0 0 auto; color: var(--muted); font: 11px "DM Sans", sans-serif; direction: ltr; }
     .route-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
     .route-button {
       min-width: 0; min-height: 56px; padding: 8px 9px; justify-content: start;
@@ -138,9 +144,10 @@
       #map { min-height: 340px; }
       .side-panel { display: contents; }
       .location-section { order: 1; }
-      .qibla-row { order: 2; }
-      .prayer-section { order: 3; }
-      .source-note { order: 4; margin-top: 5px; }
+      .mosque-list-section { order: 2; }
+      .qibla-row { order: 3; }
+      .prayer-section { order: 4; }
+      .source-note { order: 5; margin-top: 5px; }
     }
     @media (max-width: 380px) {
       .top-note span { display: none; }
@@ -167,7 +174,7 @@
 
     <section class="workspace" aria-label="المسجد الأقرب ومعلومات الصلاة">
       <div class="map-panel">
-        <div id="map" aria-label="خريطة توضح موقعك والمسجد الأقرب"></div>
+        <div id="map" aria-label="خريطة توضح موقعك والمساجد التي عُثر عليها"></div>
         <div class="status-line" id="status-line" role="status" aria-live="polite"><i data-lucide="info"></i><span></span></div>
         <div class="map-caption"><i data-lucide="layers-2"></i><span>OpenStreetMap</span></div>
       </div>
@@ -179,6 +186,11 @@
             <button class="route-button" id="foot-route" type="button" aria-label="إظهار مسار المشي"><i data-lucide="person-standing"></i><span class="route-copy"><strong id="foot-distance">--</strong><small id="foot-duration">مشي</small></span></button>
             <button class="route-button" id="car-route" type="button" aria-label="إظهار مسار السيارة"><i data-lucide="car-front"></i><span class="route-copy"><strong id="car-distance">--</strong><small id="car-duration">سيارة</small></span></button>
           </div>
+        </section>
+
+        <section class="panel-section mosque-list-section">
+          <div class="section-heading"><h2 class="section-title">المساجد التي عُثر عليها</h2><span class="live-tag" id="mosque-count">—</span></div>
+          <div class="mosque-list" id="mosque-list" aria-live="polite"><p class="empty-state">حدد موقعك لعرض المساجد.</p></div>
         </section>
 
         <section class="panel-section qibla-row" aria-live="polite">
@@ -216,8 +228,8 @@
     const userIcon = L.divIcon({ className: "", html: '<div class="user-marker"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
     const mosqueIcon = L.divIcon({ className: "", html: '<div class="mosque-marker"><span>م</span></div>', iconSize: [34, 34], iconAnchor: [8, 30] });
     const routeLayers = L.layerGroup().addTo(map);
+    const mosqueMarkers = L.layerGroup().addTo(map);
     let userMarker;
-    let mosqueMarker;
     let selectedRoutes = {};
     let currentLocation;
     let currentMosque;
@@ -269,7 +281,7 @@
       }
     }
 
-    async function findNearestMosque(location) {
+    async function findMosques(location) {
       const searches = await Promise.allSettled(["mosque", "مسجد"].flatMap((term) => ["place_of_worship", "mosque"].map(async (amenity) => {
         const params = new URLSearchParams({
           q: term,
@@ -294,7 +306,6 @@
         if (properties.osm_key !== "amenity" || !["place_of_worship", "mosque"].includes(properties.osm_value)) return;
         const [longitude, latitude] = coordinates;
         const distance = map.distance([location.lat, location.lng], [latitude, longitude]);
-        if (distance > 12000) return;
         const key = properties.osm_id ? `${properties.osm_type}/${properties.osm_id}` : `${latitude}/${longitude}`;
         if (!unique.has(key) || unique.get(key).distance > distance) {
           unique.set(key, {
@@ -306,8 +317,29 @@
         }
       });
       const candidates = [...unique.values()].sort((a, b) => a.distance - b.distance);
-      if (!candidates.length) throw new Error("لم يُعثر على مسجد قريب ضمن 12 كم.");
-      return candidates[0];
+      if (!candidates.length) throw new Error("لم تُعثر خدمة البحث على مساجد مطابقة.");
+      return candidates;
+    }
+
+    function renderMosques(mosques) {
+      mosqueMarkers.clearLayers();
+      $("mosque-count").textContent = String(mosques.length);
+      $("mosque-list").innerHTML = mosques.map((mosque, index) => {
+        const name = mosque.tags.name || mosque.tags["name:ar"] || "مسجد";
+        const marker = L.marker([mosque.lat, mosque.lng], { icon: mosqueIcon }).addTo(mosqueMarkers);
+        marker.bindPopup(`${escapeHtml(name)}<br>${formatDistance(mosque.distance)}`);
+        return `<button class="mosque-list-item" type="button" data-mosque-index="${index}"><span>${escapeHtml(name)}</span><small>${formatDistance(mosque.distance)}</small></button>`;
+      }).join("");
+      $("mosque-list").querySelectorAll(".mosque-list-item").forEach((button) => {
+        button.addEventListener("click", () => {
+          const mosque = mosques[Number(button.dataset.mosqueIndex)];
+          if (!mosque) return;
+          map.flyTo([mosque.lat, mosque.lng], Math.max(map.getZoom(), 15));
+          mosqueMarkers.eachLayer((marker) => {
+            if (marker.getLatLng().lat === mosque.lat && marker.getLatLng().lng === mosque.lng) marker.openPopup();
+          });
+        });
+      });
     }
 
     async function getRoute(mode, from, to) {
@@ -399,36 +431,38 @@
       if (userMarker) map.removeLayer(userMarker);
       userMarker = L.marker([latitude, longitude], { icon: userIcon }).addTo(map).bindPopup("موقعك");
       map.setView([latitude, longitude], 14, { animate: true });
-      if (mosqueMarker) map.removeLayer(mosqueMarker);
-      mosqueMarker = undefined;
+      mosqueMarkers.clearLayers();
       currentMosque = undefined;
       selectedRoutes = {};
       $("foot-route").classList.remove("active");
       $("car-route").classList.remove("active");
       $("mosque-details").innerHTML = '<p class="empty-state">جارٍ البحث عن أقرب مسجد...</p>';
+      $("mosque-count").textContent = "…";
+      $("mosque-list").innerHTML = '<p class="empty-state">جارٍ البحث عن المساجد...</p>';
       $("qibla-value").textContent = "جارٍ التحديد...";
       $("prayer-date").textContent = "جارٍ تحميل المواقيت...";
       routeLayers.clearLayers();
       setRouteValue("foot", "--", "مشي");
       setRouteValue("car", "--", "سيارة");
-      showStatus("جاري تحميل معلومات موقعك والمساجد القريبة");
+      showStatus("جاري تحميل معلومات موقعك والمساجد");
 
-      const [mosqueResult] = await Promise.allSettled([findNearestMosque(currentLocation), loadPrayerData(currentLocation, isCurrentRequest)]);
+      const [mosqueResult] = await Promise.allSettled([findMosques(currentLocation), loadPrayerData(currentLocation, isCurrentRequest)]);
       if (!isCurrentRequest()) return;
       if (mosqueResult.status === "fulfilled") {
-        currentMosque = mosqueResult.value;
-        if (mosqueMarker) map.removeLayer(mosqueMarker);
-        mosqueMarker = L.marker([currentMosque.lat, currentMosque.lng], { icon: mosqueIcon }).addTo(map);
+        const mosques = mosqueResult.value;
+        currentMosque = mosques[0];
+        renderMosques(mosques);
         const name = currentMosque.tags.name || currentMosque.tags["name:ar"] || "مسجد قريب";
-        mosqueMarker.bindPopup(escapeHtml(name));
         $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(name)}</h3><p class="place-address">يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم</p>`;
-        map.fitBounds(L.latLngBounds([[latitude, longitude], [currentMosque.lat, currentMosque.lng]]).pad(.22), { maxZoom: 15 });
+        map.fitBounds(L.latLngBounds([[latitude, longitude], ...mosques.map(({ lat, lng }) => [lat, lng])]).pad(.22), { maxZoom: 15 });
         await loadRoutes(currentLocation, currentMosque, isCurrentRequest);
         if (!isCurrentRequest()) return;
         if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
         else hideStatus();
       } else {
         $("mosque-details").innerHTML = `<p class="empty-state">${escapeHtml(mosqueResult.reason.message || "تعذر العثور على مسجد قريب.")}</p>`;
+        $("mosque-count").textContent = "—";
+        $("mosque-list").innerHTML = `<p class="empty-state">${escapeHtml(mosqueResult.reason.message || "تعذر العثور على مسجد قريب.")}</p>`;
         hideStatus();
       }
     }
