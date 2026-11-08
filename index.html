@@ -86,6 +86,17 @@
     .section-title { margin: 0; font-size: 14px; font-weight: 600; }
     .live-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 500; }
     .live-dot { width: 6px; height: 6px; background: #49a776; border-radius: 50%; }
+    .location-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; margin-top: 13px; }
+    .location-search input { min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; font: inherit; font-size: 12px; }
+    .location-search input:focus-visible { outline: 3px solid rgb(46 118 87 / 20%); border-color: var(--green); }
+    .location-search button { padding: 8px 11px; border: 0; border-radius: 7px; color: #fff; background: var(--green); font: inherit; font-size: 12px; cursor: pointer; }
+    .location-search button:hover { background: var(--green-dark); }
+    .location-search button:disabled { opacity: .72; cursor: wait; }
+    .location-results { display: grid; gap: 5px; margin-top: 7px; }
+    .location-result { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #f8faf8; text-align: right; font: inherit; font-size: 12px; cursor: pointer; }
+    .location-result:hover, .location-result:focus-visible { background: var(--green-pale); border-color: #d6e8dc; }
+    .location-search-status { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .place-name { margin: 13px 0 3px; font-size: 18px; line-height: 1.5; font-weight: 600; }
     .place-address { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
     .empty-state { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 14px 0 0; }
@@ -119,6 +130,7 @@
     .prayer-item span { display: block; color: var(--muted); font-size: 10px; margin-bottom: 4px; }
     .prayer-item.next span { color: var(--green); }
     .prayer-item strong { font: 600 10px "DM Sans", sans-serif; direction: ltr; display: block; white-space: nowrap; }
+    .departure-reminder { margin: 11px 0 0; padding: 9px 10px; border-radius: 7px; color: var(--green-dark); background: var(--green-pale); font-size: 12px; line-height: 1.8; }
     .source-note { margin: auto 3px 0; color: #859089; font-size: 10px; line-height: 1.7; text-align: center; }
     .status-line { position: absolute; z-index: 500; top: 12px; right: 12px; max-width: min(390px, calc(100% - 24px)); padding: 8px 10px; display: none; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font-size: 12px; box-shadow: 0 2px 8px rgb(20 30 25 / 8%); }
     .status-line.visible { display: flex; }
@@ -169,7 +181,7 @@
       <div>
         <p class="eyebrow">المسجد والقبلة ومواقيت الصلاة</p>
         <h1 id="page-title">مساجد السودان على خريطة واحدة.</h1>
-        <p class="intro-copy">تصفّح المساجد المسجلة في جميع الولايات. تظهر بيانات الخرطوم مبدئيًا، ويمكنك تحديد موقعك لحساب الأقرب إليه.</p>
+        <p class="intro-copy">تصفّح المساجد المسجلة في جميع الولايات. تظهر بيانات الخرطوم مبدئيًا، ويمكنك تحديد موقعك أو البحث عن مدينة وحي لحساب أقرب مسجد.</p>
       </div>
       <button class="locate-button" id="locate-button" type="button"><i data-lucide="locate-fixed"></i><span>تحديد موقعي</span></button>
     </section>
@@ -182,6 +194,12 @@
       </div>
       <aside class="side-panel">
         <section class="panel-section location-section">
+          <form class="location-search" id="location-search-form" role="search">
+            <label class="sr-only" for="location-search-input">ابحث عن مدينة أو حي في السودان</label>
+            <input id="location-search-input" type="search" placeholder="ابحث عن مدينة أو حي في السودان" autocomplete="off">
+            <button id="location-search-button" type="submit">بحث</button>
+          </form>
+          <div class="location-results" id="location-results" aria-live="polite"></div>
           <div class="section-heading"><h2 class="section-title">أقرب مسجد</h2><span class="live-tag"><span class="live-dot"></span><span id="location-label">الخرطوم (افتراضي)</span></span></div>
           <div id="mosque-details"><p class="empty-state">جارٍ تحديد أقرب مسجد في الخرطوم...</p></div>
           <div class="route-list" aria-label="المسافة ومدة الوصول">
@@ -210,8 +228,9 @@
             <div class="prayer-item"><span>المغرب</span><strong>--:--</strong></div>
             <div class="prayer-item"><span>العشاء</span><strong>--:--</strong></div>
           </div>
+          <p class="departure-reminder" id="departure-reminder" aria-live="polite">يُحسب وقت التحرك بعد معرفة مدة المشي إلى أقرب مسجد.</p>
         </section>
-        <p class="source-note">المساجد والطرق من OpenStreetMap · مواقيت الصلاة والقبلة تقديرية حسب الموقع المحدد</p>
+        <p class="source-note">المساجد والطرق من OpenStreetMap · البحث عبر <a href="https://photon.komoot.io/" target="_blank" rel="noopener noreferrer">Photon</a> · مواقيت الصلاة والقبلة تقديرية حسب الموقع المحدد</p>
       </aside>
     </section>
   </main>
@@ -241,7 +260,27 @@
     let locationRequestId = 0;
     let activeLocationWatchId = null;
     let activeLocationTimeoutId = null;
+    let photonSearchRequestId = 0;
+    let walkingRequestController;
+    let walkingDurationSeconds;
+    let walkingDistancesComplete = false;
+    let currentPrayerTimes = [];
+    const sudanUtcOffsetHours = 2;
+    const departureBufferMinutes = 10;
+    const walkingTableBatchSize = 100;
+    const walkingTableConcurrency = 3;
+    const walkingDistances = new Map();
     const $ = (id) => document.getElementById(id);
+    function cancelLocationRequest() {
+      if (activeLocationWatchId === null) return false;
+      navigator.geolocation.clearWatch(activeLocationWatchId);
+      activeLocationWatchId = null;
+      clearTimeout(activeLocationTimeoutId);
+      activeLocationTimeoutId = null;
+      $("locate-button").querySelector("span").textContent = "تحديد موقعي";
+      return true;
+    }
+
     const showStatus = (message, isError = false) => {
       const status = $("status-line");
       status.querySelector("span").textContent = message;
@@ -266,18 +305,112 @@
     };
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
-    async function getJson(url) {
+    async function getJson(url, signal) {
       const controller = new AbortController();
+      const abortRequest = () => controller.abort();
       const timeout = setTimeout(() => controller.abort(), 15000);
+      signal?.addEventListener("abort", abortRequest, { once: true });
+      if (signal?.aborted) abortRequest();
       try {
         const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
       } catch (error) {
+        if (signal?.aborted) throw error;
         if (error.name === "AbortError") throw new Error("انتهت مهلة الاتصال بالخدمة.");
         throw error;
       } finally {
         clearTimeout(timeout);
+        signal?.removeEventListener("abort", abortRequest);
+      }
+    }
+
+    async function searchLocations(event) {
+      event.preventDefault();
+      const query = $("location-search-input").value.trim();
+      const resultsContainer = $("location-results");
+      const searchButton = $("location-search-button");
+      resultsContainer.replaceChildren();
+      if (query.length < 2) {
+        resultsContainer.textContent = "";
+        const message = document.createElement("p");
+        message.className = "location-search-status";
+        message.textContent = "اكتب حرفين على الأقل للبحث.";
+        resultsContainer.append(message);
+        return;
+      }
+
+      const requestId = ++photonSearchRequestId;
+      searchButton.disabled = true;
+      const loadingMessage = document.createElement("p");
+      loadingMessage.className = "location-search-status";
+      loadingMessage.textContent = "جارٍ البحث عن الموقع...";
+      resultsContainer.append(loadingMessage);
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          limit: "8",
+          bbox: "21.8,8.5,38.6,22.3"
+        });
+        const result = await getJson(`https://photon.komoot.io/api/?${params}`);
+        if (requestId !== photonSearchRequestId) return;
+        const features = Array.isArray(result.features) ? result.features : [];
+        const locations = features.filter((feature) =>
+          feature?.properties?.countrycode?.toLowerCase() === "sd" &&
+          Array.isArray(feature.geometry?.coordinates) &&
+          Number.isFinite(feature.geometry.coordinates[0]) &&
+          Number.isFinite(feature.geometry.coordinates[1]) &&
+          Math.abs(feature.geometry.coordinates[0]) <= 180 &&
+          Math.abs(feature.geometry.coordinates[1]) <= 90
+        );
+        resultsContainer.replaceChildren();
+        if (!locations.length) {
+          const message = document.createElement("p");
+          message.className = "location-search-status";
+          message.textContent = "لم يُعثر على موقع في السودان. جرّب اسم مدينة أو حي آخر.";
+          resultsContainer.append(message);
+          return;
+        }
+
+        locations.forEach((feature) => {
+          const properties = feature.properties;
+          const label = [...new Set([
+            properties.name,
+            properties.district,
+            properties.city,
+            properties.state,
+            properties.country
+          ].filter((part) => typeof part === "string" && part.trim()))].join("، ");
+          if (!label) return;
+          const button = document.createElement("button");
+          button.className = "location-result";
+          button.type = "button";
+          button.textContent = label;
+          button.addEventListener("click", () => {
+            cancelLocationRequest();
+            resultsContainer.replaceChildren();
+            $("location-search-input").value = label;
+            updateLocation(feature.geometry.coordinates[1], feature.geometry.coordinates[0], label).catch(() => {
+              showStatus("تعذر تحديث معلومات الموقع. حاول مجدداً.", true);
+            });
+          });
+          resultsContainer.append(button);
+        });
+        if (!resultsContainer.childElementCount) {
+          const message = document.createElement("p");
+          message.className = "location-search-status";
+          message.textContent = "لم يُعثر على موقع في السودان. جرّب اسم مدينة أو حي آخر.";
+          resultsContainer.append(message);
+        }
+      } catch {
+        if (requestId !== photonSearchRequestId) return;
+        resultsContainer.replaceChildren();
+        const message = document.createElement("p");
+        message.className = "location-search-status";
+        message.textContent = "تعذّر البحث عن الموقع. تحقق من اتصال الإنترنت وحاول مجددًا.";
+        resultsContainer.append(message);
+      } finally {
+        if (requestId === photonSearchRequestId) searchButton.disabled = false;
       }
     }
 
@@ -290,7 +423,10 @@
         const marker = L.marker([mosque.lat, mosque.lng], { icon: mosqueIcon }).addTo(mosqueMarkers);
         marker.bindPopup(escapeHtml(name));
         markersById.set(mosque.id, marker);
-        const detail = Number.isFinite(mosque.distance) ? formatDistance(mosque.distance) : mosque.state || "السودان";
+        const walkingDistance = walkingDistances.get(mosque.id);
+        const detail = walkingDistance
+          ? `مشي ${formatDistance(walkingDistance.distance)}`
+          : walkingRequestController ? "جارٍ حساب المشي..." : walkingDistancesComplete ? "لا يوجد مسار" : "تعذر الحساب";
         return `<button class="mosque-list-item" type="button" data-mosque-index="${index}"><span>${escapeHtml(name)}</span><small>${escapeHtml(detail)}</small></button>`;
       }).join("");
       $("mosque-list").querySelectorAll(".mosque-list-item").forEach((button) => {
@@ -301,6 +437,59 @@
           markersById.get(mosque.id)?.openPopup();
         });
       });
+    }
+
+    async function loadWalkingDistances(location, mosques, requestId, controller) {
+      let nextBatch = 0;
+      let completedMosques = 0;
+      let failedBatches = 0;
+      const batchCount = Math.ceil(mosques.length / walkingTableBatchSize);
+      const updateProgress = () => {
+        if (requestId === locationRequestId) {
+          showStatus(`جارٍ حساب مسافات المشي: ${completedMosques} من ${mosques.length} مسجدًا`);
+        }
+      };
+      const worker = async () => {
+        while (nextBatch < batchCount && !controller.signal.aborted) {
+          const batchIndex = nextBatch++;
+          const start = batchIndex * walkingTableBatchSize;
+          const batch = mosques.slice(start, start + walkingTableBatchSize);
+          const coordinates = [
+            `${location.lng},${location.lat}`,
+            ...batch.map(({ lng, lat }) => `${lng},${lat}`)
+          ].join(";");
+          const destinations = batch.map((_, index) => index + 1).join(";");
+          const url = `https://routing.openstreetmap.de/routed-foot/table/v1/foot/${coordinates}?sources=0&destinations=${destinations}&annotations=distance,duration`;
+          try {
+            const result = await getJson(url, controller.signal);
+            if (requestId !== locationRequestId) return;
+            if (result.code !== "Ok" || !Array.isArray(result.distances?.[0]) || !Array.isArray(result.durations?.[0])) {
+              throw new Error("خدمة مسارات المشي أعادت بيانات غير صالحة.");
+            }
+            batch.forEach((mosque, index) => {
+              const distance = result.distances[0][index];
+              const duration = result.durations[0][index];
+              if (Number.isFinite(distance) && Number.isFinite(duration)) {
+                walkingDistances.set(mosque.id, { distance, duration });
+              }
+            });
+            completedMosques += batch.length;
+            updateProgress();
+          } catch (error) {
+            if (controller.signal.aborted || requestId !== locationRequestId) return;
+            failedBatches += 1;
+            controller.abort();
+            throw error;
+          }
+        }
+      };
+
+      const results = await Promise.allSettled(
+        Array.from({ length: Math.min(walkingTableConcurrency, batchCount) }, worker)
+      );
+      if (requestId !== locationRequestId) return { failedBatches, cancelled: true };
+      if (results.some((result) => result.status === "rejected")) failedBatches += 1;
+      return { failedBatches, cancelled: false };
     }
 
     async function loadMosques() {
@@ -375,7 +564,7 @@
     }
 
     function calculatePrayerTimes(location, now = new Date()) {
-      const timezone = Math.round(location.lng / 15);
+      const timezone = sudanUtcOffsetHours;
       const localNow = new Date(now.getTime() + timezone * 60 * 60 * 1000);
       const year = localNow.getUTCFullYear();
       const month = localNow.getUTCMonth();
@@ -408,6 +597,7 @@
         sunsetAngle === null ? null : toTime(solarNoon + sunsetAngle * 4),
         ishaAngle === null ? null : toTime(solarNoon + ishaAngle * 4)
       ];
+      currentPrayerTimes = times;
       const currentMinutes = localNow.getUTCHours() * 60 + localNow.getUTCMinutes();
       const nextPrayer = times.findIndex((time) => {
         if (!time) return false;
@@ -429,6 +619,40 @@
       const x = Math.cos(lat) * Math.tan(kaabaLat) - Math.sin(lat) * Math.cos(kaabaLng - lng);
       const qibla = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
       $("qibla-value").textContent = `${Math.round(qibla)}° من الشمال`;
+      updateDepartureReminder();
+    }
+
+    function updateDepartureReminder() {
+      const reminder = $("departure-reminder");
+      if (!currentPrayerTimes.length || !Number.isFinite(walkingDurationSeconds)) {
+        reminder.textContent = "يُحسب وقت التحرك بعد معرفة مدة المشي إلى أقرب مسجد.";
+        return;
+      }
+
+      const localNow = new Date(Date.now() + sudanUtcOffsetHours * 60 * 60 * 1000);
+      const currentMinutes = localNow.getUTCHours() * 60 + localNow.getUTCMinutes();
+      const prayers = ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"];
+      const nextPrayer = currentPrayerTimes
+        .map((time, index) => {
+          if (!time) return null;
+          const [hour, minute] = time.split(":").map(Number);
+          let prayerMinutes = hour * 60 + minute;
+          if (prayerMinutes <= currentMinutes) prayerMinutes += 1440;
+          return { name: prayers[index], minutes: prayerMinutes };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.minutes - b.minutes)[0];
+      if (!nextPrayer) {
+        reminder.textContent = "تعذر حساب موعد الصلاة القادمة لهذا الموقع.";
+        return;
+      }
+
+      const walkingMinutes = Math.ceil(walkingDurationSeconds / 60);
+      const departureMinutes = nextPrayer.minutes - walkingMinutes - departureBufferMinutes;
+      const departureTime = departureMinutes <= currentMinutes
+        ? "تحرّك الآن"
+        : formatPrayerTime(`${String(Math.floor(departureMinutes / 60) % 24).padStart(2, "0")}:${String(departureMinutes % 60).padStart(2, "0")}`);
+      reminder.textContent = `${departureTime} لصلاة ${nextPrayer.name}؛ مدة المشي ${walkingMinutes} دقيقة مع ${departureBufferMinutes} دقائق احتياط قبل الأذان.`;
     }
 
     async function updateLocation(latitude, longitude, locationLabel = "الموقع المحدد", focusMap = true) {
@@ -438,6 +662,12 @@
       if (!allMosques.length) throw new Error("بيانات المساجد لم تكتمل بعد.");
       const requestId = ++locationRequestId;
       const isCurrentRequest = () => requestId === locationRequestId;
+      walkingRequestController?.abort();
+      const currentWalkingRequest = new AbortController();
+      walkingRequestController = currentWalkingRequest;
+      walkingDistances.clear();
+      walkingDistancesComplete = false;
+      walkingDurationSeconds = undefined;
       currentLocation = { lat: latitude, lng: longitude };
       $("location-label").textContent = locationLabel;
       if (userMarker) map.removeLayer(userMarker);
@@ -461,23 +691,34 @@
         .sort((a, b) => a.distance - b.distance);
       currentMosque = rankedMosques[0];
       renderMosques(rankedMosques);
-      $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(currentMosque.name)}</h3><p class="place-address">يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم</p>`;
+      const walkingResult = await loadWalkingDistances(currentLocation, rankedMosques, requestId, currentWalkingRequest);
+      if (!isCurrentRequest() || walkingResult.cancelled) return;
+      walkingRequestController = undefined;
+      walkingDistancesComplete = walkingResult.failedBatches === 0;
+      rankedMosques.sort((a, b) =>
+        (walkingDistances.get(a.id)?.distance ?? Infinity) - (walkingDistances.get(b.id)?.distance ?? Infinity) ||
+        a.distance - b.distance
+      );
+      currentMosque = rankedMosques.find((mosque) => walkingDistances.has(mosque.id)) || rankedMosques[0];
+      walkingDurationSeconds = walkingDistances.get(currentMosque.id)?.duration;
+      renderMosques(rankedMosques);
+      const currentWalkingDistance = walkingDistances.get(currentMosque.id);
+      $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(currentMosque.name)}</h3><p class="place-address">${currentWalkingDistance
+        ? `يبعد ${formatDistance(currentWalkingDistance.distance)} مشيًا · ${formatDuration(currentWalkingDistance.duration)}`
+        : `يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم · تعذر حساب مسار المشي`}</p>`;
+      updateDepartureReminder();
       if (focusMap) {
         map.fitBounds(L.latLngBounds([[latitude, longitude], ...rankedMosques.slice(0, 10).map(({ lat, lng }) => [lat, lng])]).pad(.22), { maxZoom: 15 });
       }
       await loadRoutes(currentLocation, currentMosque, isCurrentRequest);
       if (!isCurrentRequest()) return;
-      if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
+      if (walkingResult.failedBatches) showStatus("تعذر حساب مسافة المشي لبعض المساجد. عُرضت النتائج المتاحة.", true);
+      else if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
       else hideStatus();
     }
 
     function requestUserLocation() {
-      if (activeLocationWatchId !== null) {
-        navigator.geolocation.clearWatch(activeLocationWatchId);
-        activeLocationWatchId = null;
-        clearTimeout(activeLocationTimeoutId);
-        activeLocationTimeoutId = null;
-        $("locate-button").querySelector("span").textContent = "تحديد موقعي";
+      if (cancelLocationRequest()) {
         showStatus("تم إلغاء تحديد الموقع. يمكنك اختيار موقع بالنقر على الخريطة.");
         return;
       }
@@ -492,21 +733,13 @@
       const button = $("locate-button");
       button.querySelector("span").textContent = "إلغاء تحديد الموقع";
       showStatus("جارٍ تحديد موقعك. وافق على طلب الموقع أو ألغِ الانتظار.");
-      const finishRequest = () => {
-        if (activeLocationWatchId === null) return false;
-        navigator.geolocation.clearWatch(activeLocationWatchId);
-        activeLocationWatchId = null;
-        clearTimeout(activeLocationTimeoutId);
-        activeLocationTimeoutId = null;
-        button.querySelector("span").textContent = "تحديد موقعي";
-        return true;
-      };
+      const finishRequest = cancelLocationRequest;
       const handlePositionError = (error) => {
         if (!finishRequest()) return;
         const messages = {
           1: "تم رفض إذن الموقع. اسمح للموقع بالوصول إلى موقعك من إعدادات المتصفح.",
           2: "موقعك غير متاح حاليًا. فعّل خدمات الموقع وحاول مجددًا.",
-          3: "انتهت مهلة تحديد الموقع. تحقق من اتصالك وخدمات الموقع ثم حاول مجددًا."
+          3: "لم يصل رد على طلب الموقع خلال دقيقة. تحقق من إذن الموقع أو انقر على الخريطة لاختيار موقع يدويًا."
         };
         showStatus(messages[error.code] || "تعذر تحديد الموقع. تحقق من إعدادات المتصفح وحاول مجددًا.", true);
       };
@@ -519,7 +752,7 @@
             });
           },
           handlePositionError,
-          { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 60000, maximumAge: 60000 }
         );
         activeLocationTimeoutId = setTimeout(() => {
           if (!finishRequest()) return;
@@ -534,6 +767,8 @@
 
     $("locate-button").disabled = true;
     $("locate-button").addEventListener("click", requestUserLocation);
+    $("location-search-form").addEventListener("submit", searchLocations);
+    setInterval(updateDepartureReminder, 60000);
 
     $("foot-route").addEventListener("click", () => renderRoute("foot"));
     $("car-route").addEventListener("click", () => renderRoute("car"));
@@ -542,6 +777,7 @@
         showStatus("انتظر اكتمال تحميل بيانات المساجد.", true);
         return;
       }
+      cancelLocationRequest();
       updateLocation(event.latlng.lat, event.latlng.lng, "نقطة على الخريطة").catch(() => {
         showStatus("تعذر تحديث معلومات الموقع. حاول مجدداً.", true);
       });
