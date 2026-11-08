@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f4ef">
-  <title>أقرب مسجد | دليل الصلاة</title>
+  <title>مساجد السودان | دليل الصلاة</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
   <style>
     :root {
@@ -160,28 +162,28 @@
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-mark"><i data-lucide="map-pin"></i></span><span>دليل الصلاة</span></div>
-    <div class="top-note"><i data-lucide="map"></i><span>معلومات محلية حسب موقعك</span></div>
+    <div class="top-note"><i data-lucide="map"></i><span>مساجد ولايات السودان</span></div>
   </header>
   <main>
     <section class="intro" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">المسجد والقبلة ومواقيت الصلاة</p>
-        <h1 id="page-title">المسجد الأقرب، على خريطتك.</h1>
-        <p class="intro-copy">اعرف المسافة والوقت المتوقع للوصول، أينما كنت.</p>
+        <h1 id="page-title">مساجد السودان على خريطة واحدة.</h1>
+        <p class="intro-copy">تصفّح المساجد المسجلة في جميع الولايات. تظهر بيانات الخرطوم مبدئيًا، ويمكنك تحديد موقعك لحساب الأقرب إليه.</p>
       </div>
       <button class="locate-button" id="locate-button" type="button"><i data-lucide="locate-fixed"></i><span>تحديد موقعي</span></button>
     </section>
 
-    <section class="workspace" aria-label="المسجد الأقرب ومعلومات الصلاة">
+    <section class="workspace" aria-label="مساجد السودان ومعلومات الصلاة">
       <div class="map-panel">
-        <div id="map" aria-label="خريطة توضح موقعك والمساجد التي عُثر عليها"></div>
+        <div id="map" aria-label="خريطة المساجد المسجلة في ولايات السودان"></div>
         <div class="status-line" id="status-line" role="status" aria-live="polite"><i data-lucide="info"></i><span></span></div>
         <div class="map-caption"><i data-lucide="layers-2"></i><span>OpenStreetMap</span></div>
       </div>
       <aside class="side-panel">
         <section class="panel-section location-section">
-          <div class="section-heading"><h2 class="section-title">أقرب مسجد</h2><span class="live-tag"><span class="live-dot"></span>حسب موقعك</span></div>
-          <div id="mosque-details"><p class="empty-state">حدد موقعك لعرض المسجد الأقرب ومسافة الطريق.</p></div>
+          <div class="section-heading"><h2 class="section-title">أقرب مسجد</h2><span class="live-tag"><span class="live-dot"></span><span id="location-label">الخرطوم (افتراضي)</span></span></div>
+          <div id="mosque-details"><p class="empty-state">جارٍ تحديد أقرب مسجد في الخرطوم...</p></div>
           <div class="route-list" aria-label="المسافة ومدة الوصول">
             <button class="route-button" id="foot-route" type="button" aria-label="إظهار مسار المشي"><i data-lucide="person-standing"></i><span class="route-copy"><strong id="foot-distance">--</strong><small id="foot-duration">مشي</small></span></button>
             <button class="route-button" id="car-route" type="button" aria-label="إظهار مسار السيارة"><i data-lucide="car-front"></i><span class="route-copy"><strong id="car-distance">--</strong><small id="car-duration">سيارة</small></span></button>
@@ -189,18 +191,18 @@
         </section>
 
         <section class="panel-section mosque-list-section">
-          <div class="section-heading"><h2 class="section-title">المساجد التي عُثر عليها</h2><span class="live-tag" id="mosque-count">—</span></div>
-          <div class="mosque-list" id="mosque-list" aria-live="polite"><p class="empty-state">حدد موقعك لعرض المساجد.</p></div>
+          <div class="section-heading"><h2 class="section-title">مساجد السودان</h2><span class="live-tag" id="mosque-count">جارٍ التحميل</span></div>
+          <div class="mosque-list" id="mosque-list" aria-live="polite"><p class="empty-state">جارٍ تحميل بيانات المساجد...</p></div>
         </section>
 
         <section class="panel-section qibla-row" aria-live="polite">
           <span class="qibla-icon"><i data-lucide="compass"></i></span>
-          <div class="qibla-copy"><strong>اتجاه القبلة</strong><span id="qibla-value">حدد موقعك أولاً</span></div>
+          <div class="qibla-copy"><strong>اتجاه القبلة</strong><span id="qibla-value">جارٍ الحساب...</span></div>
         </section>
 
         <section class="panel-section prayer-section">
           <div class="section-heading"><h2 class="section-title">مواقيت الصلاة</h2><i data-lucide="clock-3" style="width:16px;height:16px;color:#74817b"></i></div>
-          <p class="prayer-date" id="prayer-date">حسب موقعك المحلي</p>
+          <p class="prayer-date" id="prayer-date">جارٍ حساب المواقيت للخرطوم...</p>
           <div class="prayer-list" id="prayer-list" aria-live="polite">
             <div class="prayer-item"><span>الفجر</span><strong>--:--</strong></div>
             <div class="prayer-item"><span>الظهر</span><strong>--:--</strong></div>
@@ -209,16 +211,17 @@
             <div class="prayer-item"><span>العشاء</span><strong>--:--</strong></div>
           </div>
         </section>
-        <p class="source-note">المساجد والطرق من OpenStreetMap · مواقيت الصلاة واتجاه القبلة من Aladhan</p>
+        <p class="source-note">المساجد والطرق من OpenStreetMap · مواقيت الصلاة والقبلة تقديرية حسب الموقع المحدد</p>
       </aside>
     </section>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
     lucide.createIcons();
 
-    const map = L.map("map", { zoomControl: false }).setView([25, 45], 4);
+    const map = L.map("map", { zoomControl: false }).setView([15.5, 30], 6);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -228,14 +231,16 @@
     const userIcon = L.divIcon({ className: "", html: '<div class="user-marker"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
     const mosqueIcon = L.divIcon({ className: "", html: '<div class="mosque-marker"><span>م</span></div>', iconSize: [34, 34], iconAnchor: [8, 30] });
     const routeLayers = L.layerGroup().addTo(map);
-    const mosqueMarkers = L.layerGroup().addTo(map);
+    const mosqueMarkers = L.markerClusterGroup({ chunkedLoading: true }).addTo(map);
+    const markersById = new Map();
+    let allMosques = [];
     let userMarker;
     let selectedRoutes = {};
     let currentLocation;
     let currentMosque;
     let locationRequestId = 0;
     let activeLocationWatchId = null;
-
+    let activeLocationTimeoutId = null;
     const $ = (id) => document.getElementById(id);
     const showStatus = (message, isError = false) => {
       const status = $("status-line");
@@ -259,11 +264,6 @@
       const [hour, minute] = parsePrayerTime(value);
       return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "ص" : "م"}`;
     };
-    const isValidPrayerTime = (value) => {
-      if (typeof value !== "string") return false;
-      const [hour, minute] = parsePrayerTime(value);
-      return Number.isInteger(hour) && hour >= 0 && hour < 24 && Number.isInteger(minute) && minute >= 0 && minute < 60;
-    };
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
     async function getJson(url) {
@@ -281,65 +281,50 @@
       }
     }
 
-    async function findMosques(location) {
-      const searches = await Promise.allSettled(["mosque", "مسجد"].flatMap((term) => ["place_of_worship", "mosque"].map(async (amenity) => {
-        const params = new URLSearchParams({
-          q: term,
-          lat: String(location.lat),
-          lon: String(location.lng),
-          limit: "50",
-          osm_tag: `amenity:${amenity}`
-        });
-        return getJson(`https://photon.komoot.io/api/?${params}`);
-      })));
-      const features = searches
-        .filter((result) => result.status === "fulfilled")
-        .flatMap((result) => result.value.features || []);
-      if (!features.length && searches.every((result) => result.status === "rejected")) {
-        throw new Error("تعذر الاتصال بخدمة البحث عن المساجد. تحقق من اتصال الإنترنت وحاول مجددًا.");
-      }
-      const unique = new Map();
-      features.forEach((feature) => {
-        const properties = feature.properties || {};
-        const coordinates = feature.geometry?.coordinates;
-        if (!Array.isArray(coordinates) || coordinates.length < 2 || !coordinates.every(Number.isFinite)) return;
-        if (properties.osm_key !== "amenity" || !["place_of_worship", "mosque"].includes(properties.osm_value)) return;
-        const [longitude, latitude] = coordinates;
-        const distance = map.distance([location.lat, location.lng], [latitude, longitude]);
-        const key = properties.osm_id ? `${properties.osm_type}/${properties.osm_id}` : `${latitude}/${longitude}`;
-        if (!unique.has(key) || unique.get(key).distance > distance) {
-          unique.set(key, {
-            lat: latitude,
-            lng: longitude,
-            distance,
-            tags: { name: properties.name, "name:ar": properties["name:ar"] }
-          });
-        }
-      });
-      const candidates = [...unique.values()].sort((a, b) => a.distance - b.distance);
-      if (!candidates.length) throw new Error("لم تُعثر خدمة البحث على مساجد مطابقة.");
-      return candidates;
-    }
-
     function renderMosques(mosques) {
       mosqueMarkers.clearLayers();
+      markersById.clear();
       $("mosque-count").textContent = String(mosques.length);
       $("mosque-list").innerHTML = mosques.map((mosque, index) => {
-        const name = mosque.tags.name || mosque.tags["name:ar"] || "مسجد";
+        const name = mosque.name || "مسجد بدون اسم";
         const marker = L.marker([mosque.lat, mosque.lng], { icon: mosqueIcon }).addTo(mosqueMarkers);
-        marker.bindPopup(`${escapeHtml(name)}<br>${formatDistance(mosque.distance)}`);
-        return `<button class="mosque-list-item" type="button" data-mosque-index="${index}"><span>${escapeHtml(name)}</span><small>${formatDistance(mosque.distance)}</small></button>`;
+        marker.bindPopup(escapeHtml(name));
+        markersById.set(mosque.id, marker);
+        const detail = Number.isFinite(mosque.distance) ? formatDistance(mosque.distance) : mosque.state || "السودان";
+        return `<button class="mosque-list-item" type="button" data-mosque-index="${index}"><span>${escapeHtml(name)}</span><small>${escapeHtml(detail)}</small></button>`;
       }).join("");
       $("mosque-list").querySelectorAll(".mosque-list-item").forEach((button) => {
         button.addEventListener("click", () => {
           const mosque = mosques[Number(button.dataset.mosqueIndex)];
           if (!mosque) return;
           map.flyTo([mosque.lat, mosque.lng], Math.max(map.getZoom(), 15));
-          mosqueMarkers.eachLayer((marker) => {
-            if (marker.getLatLng().lat === mosque.lat && marker.getLatLng().lng === mosque.lng) marker.openPopup();
-          });
+          markersById.get(mosque.id)?.openPopup();
         });
       });
+    }
+
+    async function loadMosques() {
+      try {
+        const result = await getJson("mosques.json");
+        if (!Array.isArray(result)) throw new Error("ملف بيانات المساجد غير صالح.");
+        allMosques = result.filter((mosque) =>
+          mosque && typeof mosque.id === "string" &&
+          Number.isFinite(mosque.lat) && Number.isFinite(mosque.lng) &&
+          Math.abs(mosque.lat) <= 90 && Math.abs(mosque.lng) <= 180
+        );
+        if (!allMosques.length) throw new Error("لا يحتوي ملف البيانات على مساجد صالحة.");
+        renderMosques(allMosques);
+        map.fitBounds(L.latLngBounds(allMosques.map(({ lat, lng }) => [lat, lng])).pad(.08));
+        $("locate-button").disabled = false;
+        hideStatus();
+        updateLocation(15.5007, 32.5599, "الخرطوم (افتراضي)", false).catch(() => {
+          showStatus("تعذر حساب بيانات المسجد الأقرب. حاول اختيار موقع آخر.", true);
+        });
+      } catch (error) {
+        $("mosque-count").textContent = "—";
+        $("mosque-list").innerHTML = `<p class="empty-state">${escapeHtml(error.message || "تعذر تحميل بيانات المساجد.")}</p>`;
+        showStatus("تعذر تحميل ملف المساجد. أعد إنشاء mosques.json أو حاول لاحقًا.", true);
+      }
     }
 
     async function getRoute(mode, from, to) {
@@ -381,98 +366,119 @@
       else if (selectedRoutes.car) renderRoute("car");
     }
 
-    async function loadPrayerData(location, isCurrentRequest) {
-      const now = new Date();
-      const date = `${String(now.getDate()).padStart(2, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
-      const coordinates = `latitude=${location.lat}&longitude=${location.lng}`;
-      const prayerUrl = `https://api.aladhan.com/v1/timings/${date}?${coordinates}&method=3`;
-      const qiblaUrl = `https://api.aladhan.com/v1/qibla/${location.lat}/${location.lng}`;
-      const [prayerResult, qiblaResult] = await Promise.allSettled([getJson(prayerUrl), getJson(qiblaUrl)]);
-
-      if (!isCurrentRequest()) return;
-      if (prayerResult.status === "fulfilled" && prayerResult.value?.code === 200 && prayerResult.value.data?.timings) {
-        const data = prayerResult.value.data;
-        const timings = data.timings;
-        const prayers = [["الفجر", "Fajr"], ["الظهر", "Dhuhr"], ["العصر", "Asr"], ["المغرب", "Maghrib"], ["العشاء", "Isha"]];
-        if (prayers.some(([, key]) => !isValidPrayerTime(timings[key]))) {
-          $("prayer-date").textContent = "تعذر تحميل مواقيت الصلاة";
-        } else {
-          const currentMinutes = now.getHours() * 60 + now.getMinutes();
-          let nextPrayer = prayers.findIndex(([, key]) => {
-            const [hour, minute] = parsePrayerTime(timings[key]);
-            return hour * 60 + minute > currentMinutes;
-          });
-          if (nextPrayer < 0) nextPrayer = 0;
-          $("prayer-list").innerHTML = prayers.map(([label, key], index) => {
-            const time = formatPrayerTime(timings[key]);
-            return `<div class="prayer-item ${index === nextPrayer ? "next" : ""}"><span>${label}</span><strong>${escapeHtml(time)}</strong></div>`;
-          }).join("");
-          $("prayer-date").textContent = data.date?.readable || "مواقيت اليوم";
-        }
-      } else {
-        $("prayer-date").textContent = "تعذر تحميل مواقيت الصلاة";
-      }
-
-      if (qiblaResult.status === "fulfilled" && qiblaResult.value?.code === 200 && Number.isFinite(qiblaResult.value.data?.direction)) {
-        const degree = Math.round(qiblaResult.value.data.direction);
-        $("qibla-value").textContent = `${degree}° من الشمال`;
-      } else {
-        $("qibla-value").textContent = "تعذر تحديد الاتجاه";
-      }
+    function solarHourAngle(latitude, declination, altitude) {
+      const lat = latitude * Math.PI / 180;
+      const cosHourAngle = (Math.sin(altitude) - Math.sin(lat) * Math.sin(declination)) /
+        (Math.cos(lat) * Math.cos(declination));
+      if (cosHourAngle < -1 || cosHourAngle > 1) return null;
+      return Math.acos(cosHourAngle) * 180 / Math.PI;
     }
 
-    async function updateLocation(latitude, longitude) {
+    function calculatePrayerTimes(location, now = new Date()) {
+      const timezone = Math.round(location.lng / 15);
+      const localNow = new Date(now.getTime() + timezone * 60 * 60 * 1000);
+      const year = localNow.getUTCFullYear();
+      const month = localNow.getUTCMonth();
+      const day = localNow.getUTCDate();
+      const dayOfYear = Math.floor((Date.UTC(year, month, day) - Date.UTC(year, 0, 0)) / 86400000);
+      const daysInYear = (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / 86400000;
+      const gamma = 2 * Math.PI / daysInYear * (dayOfYear - 1);
+      const equationOfTime = 229.18 * (
+        0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma) -
+        0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma)
+      );
+      const declination =
+        0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) -
+        0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma) -
+        0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+      const solarNoon = 720 - 4 * location.lng - equationOfTime + timezone * 60;
+      const fajrAngle = solarHourAngle(location.lat, declination, -18 * Math.PI / 180);
+      const sunsetAngle = solarHourAngle(location.lat, declination, -0.833 * Math.PI / 180);
+      const ishaAngle = solarHourAngle(location.lat, declination, -17 * Math.PI / 180);
+      const asrAltitude = Math.atan(1 / (1 + Math.tan(Math.abs(location.lat * Math.PI / 180 - declination))));
+      const asrAngle = solarHourAngle(location.lat, declination, asrAltitude);
+      const toTime = (minutes) => {
+        const normalized = ((Math.round(minutes) % 1440) + 1440) % 1440;
+        return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+      };
+      const times = [
+        fajrAngle === null ? null : toTime(solarNoon - fajrAngle * 4),
+        toTime(solarNoon),
+        asrAngle === null ? null : toTime(solarNoon + asrAngle * 4),
+        sunsetAngle === null ? null : toTime(solarNoon + sunsetAngle * 4),
+        ishaAngle === null ? null : toTime(solarNoon + ishaAngle * 4)
+      ];
+      const currentMinutes = localNow.getUTCHours() * 60 + localNow.getUTCMinutes();
+      const nextPrayer = times.findIndex((time) => {
+        if (!time) return false;
+        const [hour, minute] = time.split(":").map(Number);
+        return hour * 60 + minute > currentMinutes;
+      });
+      $("prayer-list").innerHTML = times.map((time, index) => {
+        const label = ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"][index];
+        const formattedTime = time ? formatPrayerTime(time) : "--:--";
+        return `<div class="prayer-item ${index === (nextPrayer < 0 ? 0 : nextPrayer) ? "next" : ""}"><span>${label}</span><strong>${escapeHtml(formattedTime)}</strong></div>`;
+      }).join("");
+      $("prayer-date").textContent = `تقريبي · MWL · ${String(day).padStart(2, "0")}-${String(month + 1).padStart(2, "0")}-${year}`;
+
+      const kaabaLat = 21.4225 * Math.PI / 180;
+      const kaabaLng = 39.8262 * Math.PI / 180;
+      const lat = location.lat * Math.PI / 180;
+      const lng = location.lng * Math.PI / 180;
+      const y = Math.sin(kaabaLng - lng);
+      const x = Math.cos(lat) * Math.tan(kaabaLat) - Math.sin(lat) * Math.cos(kaabaLng - lng);
+      const qibla = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      $("qibla-value").textContent = `${Math.round(qibla)}° من الشمال`;
+    }
+
+    async function updateLocation(latitude, longitude, locationLabel = "الموقع المحدد", focusMap = true) {
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
         throw new Error("تعذر قراءة إحداثيات موقع صالحة.");
       }
+      if (!allMosques.length) throw new Error("بيانات المساجد لم تكتمل بعد.");
       const requestId = ++locationRequestId;
       const isCurrentRequest = () => requestId === locationRequestId;
       currentLocation = { lat: latitude, lng: longitude };
+      $("location-label").textContent = locationLabel;
       if (userMarker) map.removeLayer(userMarker);
-      userMarker = L.marker([latitude, longitude], { icon: userIcon }).addTo(map).bindPopup("موقعك");
-      map.setView([latitude, longitude], 14, { animate: true });
+      userMarker = L.marker([latitude, longitude], { icon: userIcon }).addTo(map)
+        .bindPopup(locationLabel === "موقعك الحالي" ? "موقعك" : `الموقع: ${escapeHtml(locationLabel)}`);
+      if (focusMap) map.setView([latitude, longitude], 14, { animate: true });
       mosqueMarkers.clearLayers();
       currentMosque = undefined;
       selectedRoutes = {};
       $("foot-route").classList.remove("active");
       $("car-route").classList.remove("active");
-      $("mosque-details").innerHTML = '<p class="empty-state">جارٍ البحث عن أقرب مسجد...</p>';
-      $("mosque-count").textContent = "…";
-      $("mosque-list").innerHTML = '<p class="empty-state">جارٍ البحث عن المساجد...</p>';
-      $("qibla-value").textContent = "جارٍ التحديد...";
-      $("prayer-date").textContent = "جارٍ تحميل المواقيت...";
+      $("mosque-details").innerHTML = '<p class="empty-state">جارٍ حساب أقرب مسجد...</p>';
+      calculatePrayerTimes(currentLocation);
       routeLayers.clearLayers();
       setRouteValue("foot", "--", "مشي");
       setRouteValue("car", "--", "سيارة");
-      showStatus("جاري تحميل معلومات موقعك والمساجد");
+      showStatus("جارٍ حساب المسافة إلى أقرب مسجد");
 
-      const [mosqueResult] = await Promise.allSettled([findMosques(currentLocation), loadPrayerData(currentLocation, isCurrentRequest)]);
-      if (!isCurrentRequest()) return;
-      if (mosqueResult.status === "fulfilled") {
-        const mosques = mosqueResult.value;
-        currentMosque = mosques[0];
-        renderMosques(mosques);
-        const name = currentMosque.tags.name || currentMosque.tags["name:ar"] || "مسجد قريب";
-        $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(name)}</h3><p class="place-address">يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم</p>`;
-        map.fitBounds(L.latLngBounds([[latitude, longitude], ...mosques.map(({ lat, lng }) => [lat, lng])]).pad(.22), { maxZoom: 15 });
-        await loadRoutes(currentLocation, currentMosque, isCurrentRequest);
-        if (!isCurrentRequest()) return;
-        if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
-        else hideStatus();
-      } else {
-        $("mosque-details").innerHTML = `<p class="empty-state">${escapeHtml(mosqueResult.reason.message || "تعذر العثور على مسجد قريب.")}</p>`;
-        $("mosque-count").textContent = "—";
-        $("mosque-list").innerHTML = `<p class="empty-state">${escapeHtml(mosqueResult.reason.message || "تعذر العثور على مسجد قريب.")}</p>`;
-        hideStatus();
+      const rankedMosques = allMosques
+        .map((mosque) => ({ ...mosque, distance: map.distance([latitude, longitude], [mosque.lat, mosque.lng]) }))
+        .sort((a, b) => a.distance - b.distance);
+      currentMosque = rankedMosques[0];
+      renderMosques(rankedMosques);
+      $("mosque-details").innerHTML = `<h3 class="place-name">${escapeHtml(currentMosque.name)}</h3><p class="place-address">يبعد ${formatDistance(currentMosque.distance)} بخط مستقيم</p>`;
+      if (focusMap) {
+        map.fitBounds(L.latLngBounds([[latitude, longitude], ...rankedMosques.slice(0, 10).map(({ lat, lng }) => [lat, lng])]).pad(.22), { maxZoom: 15 });
       }
+      await loadRoutes(currentLocation, currentMosque, isCurrentRequest);
+      if (!isCurrentRequest()) return;
+      if (!selectedRoutes.foot && !selectedRoutes.car) showStatus("تعذر حساب مسارات الطريق. يمكنك فتح المسجد على الخريطة.", true);
+      else hideStatus();
     }
 
     function requestUserLocation() {
       if (activeLocationWatchId !== null) {
         navigator.geolocation.clearWatch(activeLocationWatchId);
         activeLocationWatchId = null;
+        clearTimeout(activeLocationTimeoutId);
+        activeLocationTimeoutId = null;
         $("locate-button").querySelector("span").textContent = "تحديد موقعي";
-        hideStatus();
+        showStatus("تم إلغاء تحديد الموقع. يمكنك اختيار موقع بالنقر على الخريطة.");
         return;
       }
       if (!navigator.geolocation) {
@@ -490,6 +496,8 @@
         if (activeLocationWatchId === null) return false;
         navigator.geolocation.clearWatch(activeLocationWatchId);
         activeLocationWatchId = null;
+        clearTimeout(activeLocationTimeoutId);
+        activeLocationTimeoutId = null;
         button.querySelector("span").textContent = "تحديد موقعي";
         return true;
       };
@@ -506,13 +514,17 @@
         activeLocationWatchId = navigator.geolocation.watchPosition(
           (position) => {
             if (!finishRequest()) return;
-            updateLocation(position.coords.latitude, position.coords.longitude).catch(() => {
+            updateLocation(position.coords.latitude, position.coords.longitude, "موقعك الحالي").catch(() => {
               showStatus("تعذر تحديث معلومات الموقع. حاول مجدداً.", true);
             });
           },
           handlePositionError,
           { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
         );
+        activeLocationTimeoutId = setTimeout(() => {
+          if (!finishRequest()) return;
+          showStatus("لم يصل رد على طلب الموقع خلال دقيقة. تحقق من إذن الموقع أو انقر على الخريطة لاختيار موقع يدويًا.", true);
+        }, 60000);
       } catch {
         if (activeLocationWatchId !== null) finishRequest();
         else button.querySelector("span").textContent = "تحديد موقعي";
@@ -520,15 +532,21 @@
       }
     }
 
+    $("locate-button").disabled = true;
     $("locate-button").addEventListener("click", requestUserLocation);
 
     $("foot-route").addEventListener("click", () => renderRoute("foot"));
     $("car-route").addEventListener("click", () => renderRoute("car"));
     map.on("click", (event) => {
-      updateLocation(event.latlng.lat, event.latlng.lng).catch(() => {
+      if (!allMosques.length) {
+        showStatus("انتظر اكتمال تحميل بيانات المساجد.", true);
+        return;
+      }
+      updateLocation(event.latlng.lat, event.latlng.lng, "نقطة على الخريطة").catch(() => {
         showStatus("تعذر تحديث معلومات الموقع. حاول مجدداً.", true);
       });
     });
+    loadMosques();
   </script>
 </body>
 </html>
